@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 # self-made files
 from src.utils.data_loader import load, split
 from src.models.linear import LinearClassifier
+from src.utils.visualization import Visualization
 
 
 def calculate_accuracy(model, data_loader, device):
@@ -44,12 +45,58 @@ def calculate_accuracy(model, data_loader, device):
     return correct / total
 
 
-def main():
+def get_predictions(model, data_loader, device):
+    """
+    get all predictions from model on a dataset.
+    
+    args:
+        model: trained model
+        data_loader: dataloader
+        device: cpu or cuda
+        
+    returns:
+        predictions as numpy array
+    """
+    model.eval()
+    all_predictions = []
+    
+    with torch.no_grad():
+        for inputs, labels in data_loader:
+            inputs = inputs.to(device)
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            all_predictions.extend(predicted.cpu().numpy())
+    
+    return np.array(all_predictions)
+
+
+def train():
+    """
+    train and evaluate linear classifier.
+    
+    returns:
+        dict: {
+            'accuracy': final test accuracy as percentage,
+            'train_time': time spent training,
+            'total_time': total execution time,
+            'model': trained model,
+            'predictions': test predictions,
+            'y_test': true test labels,
+            'history': {
+                'losses': list of losses per epoch,
+                'train_accuracies': list of train accuracies per epoch,
+                'test_accuracies': list of test accuracies per epoch
+            }
+        }
+    """
     print("=" * 60)
     print("MNIST Classification - Linear Classifier")
     print("=" * 60)
 
     total_start = time.time()
+    
+    # initialize visualization
+    viz = Visualization()
 
     # set device - I tried using CUDA for this, but my GPU is so new that pytorch doesn't support it
     device = torch.device("cpu")
@@ -96,7 +143,7 @@ def main():
     )  # better for classification than mse (make note in report)
     """
     optimizer = optim.SGD(
-        model.parameters(), lr=0.1, momentum=0.9
+        model.parameters(), lr=0.01, momentum=0.9
     )  # stochastic gradient descent, higher lr + momentum (make note in report)
 
     print(f"model: {model}")
@@ -109,6 +156,13 @@ def main():
 
     num_epochs = 20
     train_start = time.time()
+    
+    # track history for visualization
+    history = {
+        'losses': [],
+        'train_accuracies': [],
+        'test_accuracies': []
+    }
 
     for epoch in range(num_epochs):
         model.train()  # set to training mode
@@ -133,12 +187,20 @@ def main():
 
         # calculate average loss for this epoch
         avg_loss = epoch_loss / len(train_loader)
+        
+        # always track metrics every epoch for accurate plotting
+        train_acc = calculate_accuracy(model, train_loader, device)
+        test_acc = calculate_accuracy(model, test_loader, device)
+        history['losses'].append(avg_loss)
+        history['train_accuracies'].append(train_acc * 100)
+        history['test_accuracies'].append(test_acc * 100)
 
-        # evaluate on test set every few epochs
+        # print progress every few epochs to avoid clutter
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            test_acc = calculate_accuracy(model, test_loader, device)
             print(
-                f"epoch [{epoch+1}/{num_epochs}], loss: {avg_loss:.4f}, test accuracy: {test_acc:.4f} ({test_acc*100:.2f}%)"
+                f"epoch [{epoch+1}/{num_epochs}], loss: {avg_loss:.4f}, "
+                f"train acc: {train_acc:.4f} ({train_acc*100:.2f}%), "
+                f"test acc: {test_acc:.4f} ({test_acc*100:.2f}%)"
             )
         else:
             print(f"epoch [{epoch+1}/{num_epochs}], loss: {avg_loss:.4f}")
@@ -148,6 +210,7 @@ def main():
     # final evaluation
     print("\nstep 6: final evaluation...")
     final_test_acc = calculate_accuracy(model, test_loader, device)
+    predictions = get_predictions(model, test_loader, device)
 
     total_time = time.time() - total_start
 
@@ -158,10 +221,32 @@ def main():
     print(f"training time: {train_time:.2f} seconds")
     print(f"total time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"final test accuracy: {final_test_acc:.4f} ({final_test_acc*100:.2f}%)")
+    
+    # create visualizations
+    print("\nstep 7: generating visualizations...")
+    viz.plot_confusion_matrix(y_test, predictions, "Linear")
+    viz.plot_training_history(history['losses'], history['test_accuracies'], "Linear")
+    viz.visualize_linear_weights(model, "Linear")
 
     print("\n" + "=" * 60)
     print("linear classifier training and testing complete!")
     print("=" * 60)
+    
+    # return standardized results
+    return {
+        'accuracy': final_test_acc * 100,  # convert to percentage
+        'train_time': train_time,
+        'total_time': total_time,
+        'model': model,
+        'predictions': predictions,
+        'y_test': y_test,
+        'history': history
+    }
+
+
+def main():
+    """standalone execution - just calls train()"""
+    train()
 
 
 if __name__ == "__main__":

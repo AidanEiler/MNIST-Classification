@@ -10,6 +10,7 @@ sys.path.append(
 # self-made files
 from src.utils.data_loader import load, split
 from src.models.naive_bayes import NaiveBayes
+from src.utils.visualization import Visualization
 
 
 def calculate_accuracy(PREDICTIONS, TRUE_LABELS):
@@ -19,12 +20,28 @@ def calculate_accuracy(PREDICTIONS, TRUE_LABELS):
     return correct / total
 
 
-def main():
+def train():
+    """
+    train and evaluate naive bayes classifier.
+    
+    returns:
+        dict: {
+            'accuracy': final test accuracy as percentage,
+            'train_time': time spent fitting,
+            'total_time': total execution time,
+            'model': trained naive bayes model,
+            'predictions': test predictions,
+            'y_test': true test labels
+        }
+    """
     print("=" * 60)
     print("MNIST Classification - Naive Bayes")
     print("=" * 60)
 
     total_start = time.time()
+    
+    # initialize visualization
+    viz = Visualization()
 
     # load images from disk
     print("\nstep 1: loading mnist data...")
@@ -68,10 +85,30 @@ def main():
     print(f"prediction time: {predict_time:.2f} seconds")
     print(f"total time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+    
+    # create visualizations
+    print("\nstep 4: generating visualizations...")
+    viz.plot_confusion_matrix(y_test, predictions, "Naive_Bayes")
+    viz.visualize_naive_bayes_probs(nb, "Naive_Bayes")
 
     print("\n" + "=" * 60)
     print("naive bayes training and testing complete!")
     print("=" * 60)
+    
+    # return standardized results
+    return {
+        'accuracy': accuracy * 100,  # convert to percentage
+        'train_time': fit_time,
+        'total_time': total_time,
+        'model': nb,
+        'predictions': predictions,
+        'y_test': y_test
+    }
+
+
+def main():
+    """standalone execution - just calls train()"""
+    train()
 
 
 if __name__ == "__main__":
