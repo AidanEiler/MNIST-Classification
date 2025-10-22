@@ -73,7 +73,7 @@ def main():
     viz.plot_comparison_bar(all_results, title="MNIST Model Accuracy Comparison")
     
     # comparison table
-    comparison_df = viz.generate_comparison_table(all_results)
+    viz.generate_comparison_table(all_results)
     
     # ========== SUMMARY ==========
     overall_time = time.time() - overall_start

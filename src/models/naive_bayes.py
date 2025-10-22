@@ -90,7 +90,7 @@ class NaiveBayes:
         posteriors = []
         for digit in range(self.n_classes):
             # start with prior: p(digit)
-            # use log probabilities to avoid numerical underflow
+            # use log probabilities to avoid numerical underflow src: https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
             log_posterior = np.log(self.priors[digit])
 
             # multiply by likelihood for each pixel

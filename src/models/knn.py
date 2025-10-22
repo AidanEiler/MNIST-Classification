@@ -11,6 +11,11 @@ class KNN:
         """
         args:
             k: number of nearest neighbors to use for voting
+
+        member vars:
+            self.k: number of neighbors for majority voting
+            self.x_train: stored training images, shape (n_samples, 784). set during fit()
+            self.y_train: stored training labels, shape (n_samples,). set during fit()
         """
         self.k = k
         self.x_train = None
@@ -42,7 +47,7 @@ class KNN:
 
         # predict each test sample one at a time
         for i, test_sample in enumerate(x_test):
-            # show progress every 100 samples
+            # show progress every 100 samples, useful for debugging and output
             if (i + 1) % 100 == 0:
                 print(f"predicting sample {i + 1}/{len(x_test)}...")
 
@@ -70,7 +75,7 @@ class KNN:
         k_nearest_indices = np.argsort(distances)[
             : self.k
         ]  # returns the INDICIES that would sort the array, not the elements themselves this is
-        # an important distinction because we want to know the images that the small distances
+        # an important distinction because we (I) want to know the images that the small distances
         # map to
 
         # get the labels of these k nearest neighbors
